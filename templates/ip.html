@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8" />
+    <title>Sənin IP Məlumatların</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        body { font-family: sans-serif; text-align: center; margin: 30px; background:#fafafa; color:#222; }
+        .box { background: #fff; padding: 24px; border-radius: 10px; display: inline-block; box-shadow: 0 6px 18px rgba(0,0,0,0.06); max-width: 760px; width: 100%; }
+        h1 { margin: 0 0 12px; font-size: 22px; }
+        p { margin: 6px 0; font-size: 16px; }
+        .map-wrap { margin-top: 18px; border-radius:8px; overflow: hidden; border:1px solid #e6e6e6; }
+        iframe { width: 100%; height: 360px; border: 0; display:block; }
+        .meta { text-align: left; margin-top: 12px; }
+        .link { margin-top:10px; display:inline-block; padding:8px 12px; background:#1976d2; color:white; text-decoration:none; border-radius:6px; }
+        .muted { color:#666; font-size:14px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>IP Ünvanın: {{ ip }}</h1>
+        <div class="meta">
+            <p>🌍 Ölkə: <strong>{{ country }}</strong></p>
+            <p>🏙️ Şəhər: <strong>{{ city }}</strong></p>
+            <p>📍 Region: <strong>{{ region }}</strong></p>
+            <p>💼 Provider: <strong>{{ org }}</strong></p>
+            <!-- Latitude / Longitude göstər -->
+            <p class="muted">📡 Koordinatlar: <strong>{{ lat }}</strong>, <strong>{{ lon }}</strong></p>
+        </div>
+
+        <!-- Xəritə bölməsi: server tərəfdən {{ lat }} və {{ lon }} verilsin -->
+        <div class="map-wrap">
+            {% if lat and lon %}
+                <!-- Google Maps embed (sadə) -->
+                <iframe
+                    id="mapFrame"
+                    src="https://www.google.com/maps?q={{ lat }},{{ lon }}&z=13&output=embed"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title="Location map">
+                </iframe>
+            {% else %}
+                <div style="padding:40px;">📍 Məkan məlumatı əlçatan deyil.</div>
+            {% endif %}
+        </div>
+
+        <!-- Xəritədə açmaq üçün link -->
+        {% if lat and lon %}
+            <p>
+                <a class="link" href="https://www.google.com/maps?q={{ lat }},{{ lon }}" target="_blank" rel="noopener noreferrer">
+                    Xəritədə aç
+                </a>
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- Alternativ: əgər templating mühərriki yoxdursa, JS ilə dolu nümunə.
+         Bu hissəni silə / saxla — server tərəfi templating istifadə edirsə lazımsız olur. -->
+    <script>
+    // Bu JS hissəsi yalnız statik fayl kimi istifadə edilsə və server dəyişənlərini
+    // HTML daxilində data atributu ilə versəniz faydalıdır. Məsələn:
+    // <body data-lat="40.4093" data-lon="49.8671"> ... sonra JS oxuyub iframe src yazacaq.
+    (function(){
+        var body = document.body;
+        var lat = body.getAttribute('data-lat');
+        var lon = body.getAttribute('data-lon');
+        if (!lat || !lon) return;
+        var iframe = document.getElementById('mapFrame');
+        if (iframe) {
+            iframe.src = 'https://www.google.com/maps?q=' + encodeURIComponent(lat) + ',' + encodeURIComponent(lon) + '&z=13&output=embed';
+        }
+    })();
+    </script>
+</body>
+</html>
