@@ -1,0 +1,31 @@
+# created by virtualenv automatically
+../.venv/Lib
+# Python faylları
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+.venv/
+
+# Django database
+db.sqlite3
+
+# Environment secrets
+.env
+*.env
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# macOS / Windows sistem faylları
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Django migration cache
+*/migrations/__pycache__/
