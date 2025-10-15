@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-&ebd!u9&mp#&fewxx5n2i91t6ml$=a!x=8l+nw6)6&p2m*hjt9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'false').lower() =="true"
 
-ALLOWED_HOSTS = ['xeberal.onrender.com']
+ALLOWED_HOSTS = ['*']
 
 
 
