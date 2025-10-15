@@ -79,16 +79,17 @@ WSGI_APPLICATION = 'Xeber_al.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 database_url = os.environ.get('DJANGO_DATABASE_URL')
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'xeberal_fygi',
-        'USER': 'xeberal_fygi_user',
-        'PASSWORD': 'dvNv7qHe3VIL8B5y2xOrpFQ5f6Pv1HOW',
-        'HOST': 'dpg-d3nllum3jp1c73c1a3a0-a.oregon-postgres.render.com',
-        'PORT': '5432',
+if database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(database_url)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
