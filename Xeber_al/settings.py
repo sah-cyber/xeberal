@@ -75,20 +75,19 @@ WSGI_APPLICATION = 'Xeber_al.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+database_url = os.environ.get('DJANGO_DATABASE_URL')
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(database_url)
     }
-}
-
-databese_url = os.environ.get('DJANGO_DATABASE_URL')
-DATABASES = {
-    'default': dj_database_url.parse(databese_url)
-}
-
-
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
