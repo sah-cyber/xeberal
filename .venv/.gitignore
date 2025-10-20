@@ -22,6 +22,9 @@ db.sqlite3
 # PyCharm
 .idea/
 
+
+.env
+
 # macOS / Windows sistem faylları
 .DS_Store
 Thumbs.db

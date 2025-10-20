@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 import dj_database_url
 from pathlib import Path
-
+from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,6 +25,8 @@ SECRET_KEY = 'django-insecure-&ebd!u9&mp#&fewxx5n2i91t6ml$=a!x=8l+nw6)6&p2m*hjt9
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'false').lower() =="true"
+
+#DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -40,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.admin',
     'xeber.apps.XeberConfig',
+
 
 ]
 
@@ -77,11 +80,15 @@ WSGI_APPLICATION = 'Xeber_al.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-database_url = os.environ.get('DJANGO_DATABASE_URL')
+load_dotenv()  # əvvəlcə mühit dəyişənlərini yüklə
+
+database_url = os.getenv('DATABASE_URL')
+
+print("DATABASE_URL:", database_url)  # burda terminala çıxış verərək gör
 
 if database_url:
     DATABASES = {
-        'default': dj_database_url.parse(database_url)
+        'default': dj_database_url.parse(database_url, conn_max_age=600)
     }
 else:
     DATABASES = {
