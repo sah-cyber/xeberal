@@ -26,10 +26,13 @@ SECRET_KEY = 'django-insecure-&ebd!u9&mp#&fewxx5n2i91t6ml$=a!x=8l+nw6)6&p2m*hjt9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'false').lower() =="true"
 
-#DEBUG = False
+# DEBUG = False
+# DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -128,14 +131,16 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+#from pathlib import Path
 
-# STATIC_ROOT = BASE_DIR / "staticfiles"  # collectstatic əməli bu qovluğa yığacaq
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
 #
 
 # Default primary key field type

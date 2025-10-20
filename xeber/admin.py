@@ -53,3 +53,4 @@ class IPInfoAdmin(admin.ModelAdmin):
             """)
         return "Yoxdur"
     get_audio_player.short_description = 'Səs Faylı'
+
